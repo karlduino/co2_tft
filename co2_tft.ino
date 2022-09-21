@@ -11,17 +11,10 @@ Adafruit_SCD30  scd30;
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 void setup(void) {
-  Serial.begin(115200);
-  while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
-
-  Serial.println("SCD30 CO2 meter!");
-
   // Try to initialize!
-  if (!scd30.begin()) {
-    Serial.println("Failed to find SCD30 chip");
-    while (1) { delay(10); }
+  while (!scd30.begin()) {
+    delay(250);
   }
-  Serial.println("SCD30 Found!");
 
 
   // turn on backlite
@@ -33,13 +26,9 @@ void setup(void) {
   digitalWrite(TFT_I2C_POWER, HIGH);
   delay(10);
 
-  if (!scd30.setMeasurementInterval(2)){
-    Serial.println("Failed to set measurement interval");
-    while(1) {delay(10);}
+  while (!scd30.setMeasurementInterval(2)){
+      delay(250);
   }
-  Serial.print("Measurement Interval: ");
-  Serial.print(scd30.getMeasurementInterval());
-  Serial.println(" seconds");
 
   // initialize TFT
   tft.init(135, 240); // Init ST7789 240x135
@@ -55,29 +44,22 @@ void loop() {
       tft.setTextSize(3);
       tft.fillScreen(ST77XX_BLACK);
       tft.setCursor(0, 30);
-    
-    Serial.println("Data available!");
 
     if (!scd30.read()){
-      Serial.println("Error reading sensor data");
       tft.println("READ ERR");
       return;
     }
 
-    Serial.print("CO2: ");
-    Serial.print(scd30.CO2, 0);
-    Serial.println(" ppm");
-    Serial.println("");
 
     tft.print("CO2: ");
 
      if(scd30.CO2 > 1400) {
-      tft.setTextColor(ST77XX_RED); 
-      
+      tft.setTextColor(ST77XX_RED);
+
     } else if(scd30.CO2 > 1000) {
-      tft.setTextColor(ST77XX_YELLOW);   
+      tft.setTextColor(ST77XX_YELLOW);
     } else {
-          tft.setTextColor(ST77XX_WHITE);   
+          tft.setTextColor(ST77XX_WHITE);
     }
 
     tft.print(scd30.CO2, 0);
