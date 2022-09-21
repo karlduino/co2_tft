@@ -64,7 +64,18 @@ void loop() {
 
     tft.print(scd30.CO2, 0);
     tft.println(" ppm");
-  }
+
+    tft.setTextColor(ST77XX_WHITE);
+    tft.print("Temp: ");
+    tft.print(scd30.temperature*9.0/5.0+32.0, 0);
+    tft.print("\367");
+    tft.println("F");
+
+    tft.print("Rel hum: ");
+    tft.print(scd30.relative_humidity, 0);
+    tft.println("%");
+
+    }
 
   delay(100);
 }
