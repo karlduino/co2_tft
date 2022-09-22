@@ -11,8 +11,7 @@
 const char* ssid = PRIVATE_SSID;
 const char* password = PRIVATE_PASSWORD;
 
-const char* api_host = PRIVATE_API_HOST;
-String api_call = PRIVATE_API_CALL;
+const char* api_host = "docs.google.com";
 
 bool wifi_connected=1;
 #define MAX_WIFI_TRIES 10
@@ -31,6 +30,11 @@ void setup(void) {
     delay(250);
   }
 
+  Serial.begin(115200);
+  while(!Serial) { delay(100); }
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
   WiFi.begin(ssid, password);
   int wifi_tries = 0;
   while(WiFi.status() != WL_CONNECTED) {
@@ -40,6 +44,12 @@ void setup(void) {
       wifi_connected=0;
       break;
     }
+  }
+
+  if(wifi_connected) {
+      Serial.println("Wifi connected");
+      Serial.print("IP address: ");
+      Serial.println(WiFi.localIP());
   }
 
   // turn on backlite
@@ -103,7 +113,7 @@ void loop() {
     }
 
     // post form data?
-    if(last_post_time==0 || millis() - last_post_time > MS_BETW_POSTS) {
+    if(wifi_connected && (last_post_time==0 || millis() - last_post_time > MS_BETW_POSTS)) {
       last_post_time = millis();
 
       WiFiClient client;
@@ -113,27 +123,30 @@ void loop() {
       }
 
       // build up URI for request
-      String url = PRIVATE_API_CALL;
+      String url = PRIVATE_API_CALL; // defined in private.h
       url += "&";
-      url += PRIVATE_ENTRY1;
+      url += PRIVATE_ENTRY1; // defined in private.h
       url += "=";
       url += "ULC013";
       url += "&";
-      url += PRIVATE_ENTRY2;
+      url += PRIVATE_ENTRY2; // defined in private.h
       url += "=";
       url += "session001";
       url += "&";
-      url += PRIVATE_ENTRY3;
+      url += PRIVATE_ENTRY3; // defined in private.h
       url += "=";
       url += scd30.CO2;
       url += "&";
-      url += PRIVATE_ENTRY4;
+      url += PRIVATE_ENTRY4; // defined in private.h
       url += "=";
       url += scd30.temperature;
       url += "&";
-      url += PRIVATE_ENTRY5;
+      url += PRIVATE_ENTRY5; // defined in private.h
       url += "=";
       url += scd30.relative_humidity;
+
+      Serial.println();
+      Serial.println(url);
 
       client.print(String("Get ") + url + " HTTP/1.1\r\n" +
                    "Host: " + api_host + "\r\n" +
@@ -147,9 +160,12 @@ void loop() {
       }
 
 
+      Serial.println();
       while(client.available()) {
           String line = client.readStringUntil('\r');
+          Serial.println(line);
       }
+      Serial.println();
 
     } // end post form data
 
