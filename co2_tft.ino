@@ -53,18 +53,13 @@ Adafruit_SCD30  scd30;
 // Use dedicated hardware SPI pins
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-unsigned long sessionID;
+String sessionID;
 
 void setup(void) {
   // Try to initialize!
   while (!scd30.begin()) {
     delay(250);
   }
-
-  Serial.begin(115200);
-  while(!Serial) { delay(100); }
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
 
   WiFi.begin(ssid, password);
   int wifi_tries = 0;
@@ -75,12 +70,6 @@ void setup(void) {
       wifi_connected=0;
       break;
     }
-  }
-
-  if(wifi_connected) {
-      Serial.println("Wifi connected");
-      Serial.print("IP address: ");
-      Serial.println(WiFi.localIP());
   }
 
   client.setCACert(root_ca);
@@ -103,12 +92,18 @@ void setup(void) {
   tft.setRotation(3);
   tft.fillScreen(ST77XX_BLACK);
 
-  // create a random session ID
+  // create a random session ID (15 random digits)
   randomSeed(analogRead(0));
-  sessionID = random(1e20);
-  Serial.print("Session ID: ");
-  Serial.println(sessionID);
+  for(int i=0; i<15; i++) {
+    sessionID += random(0,9);
+  }
 
+  // wait 10 seconds for the sensor to settle
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setTextSize(3);
+  tft.setCursor(0, 30);
+  tft.println("Warming up...");
+  delay(10000);
 }
 
 
@@ -158,10 +153,8 @@ void loop() {
 
       const int httpPort = 443;
       if(!client.connect(api_host, httpPort)) {
-          Serial.println("Connection failed");
           return;
       }
-      Serial.println("Connected to server");
 
       // build up URI for request
       String url = "https://";
@@ -170,11 +163,11 @@ void loop() {
       url += "&";
       url += PRIVATE_ENTRY1; // defined in private.h
       url += "=";
-      url += "ULC013";
+      url += SERIAL_NUMBER;  // defined in private.h
       url += "&";
       url += PRIVATE_ENTRY2; // defined in private.h
       url += "=";
-      url += sessionID;
+      url += sessionID; // random
       url += "&";
       url += PRIVATE_ENTRY3; // defined in private.h
       url += "=";
@@ -188,9 +181,6 @@ void loop() {
       url += "=";
       url += scd30.relative_humidity;
 
-      Serial.println();
-      Serial.println(url);
-
       client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                    "Host: " + api_host + "\r\n" +
                    "Connection: close\r\n\r\n");
@@ -201,14 +191,6 @@ void loop() {
               return;
           }
       }
-
-
-      Serial.println();
-      while(client.available()) {
-          char c = client.read();
-          Serial.write(c);
-      }
-      Serial.println();
 
       client.stop();
     } // end post form data
