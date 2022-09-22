@@ -4,6 +4,21 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
+#include <WiFi.h>
+
+// private info
+#include "private.h"
+const char* ssid = PRIVATE_SSID;
+const char* password = PRIVATE_PASSWORD;
+
+const char* api_host = PRIVATE_API_HOST;
+String api_call = PRIVATE_API_CALL;
+
+bool wifi_connected=1;
+#define MAX_WIFI_TRIES 10
+#define MS_BETW_POSTS 60000
+#define MS_TIMEOUT 5000
+unsigned long last_post_time=0;
 
 
 Adafruit_SCD30  scd30;
@@ -16,6 +31,16 @@ void setup(void) {
     delay(250);
   }
 
+  WiFi.begin(ssid, password);
+  int wifi_tries = 0;
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    wifi_tries++;
+    if(wifi_tries > MAX_WIFI_TRIES) {
+      wifi_connected=0;
+      break;
+    }
+  }
 
   // turn on backlite
   pinMode(TFT_BACKLITE, OUTPUT);
@@ -76,6 +101,57 @@ void loop() {
     tft.println("%");
 
     }
+
+    // post form data?
+    if(last_post_time==0 || millis() - last_post_time > MS_BETW_POSTS) {
+      last_post_time = millis();
+
+      WiFiClient client;
+      const int httpPort = 80;
+      if(!client.connect(api_host, httpPort)) {
+          return;
+      }
+
+      // build up URI for request
+      String url = PRIVATE_API_CALL;
+      url += "&";
+      url += PRIVATE_ENTRY1;
+      url += "=";
+      url += "ULC013";
+      url += "&";
+      url += PRIVATE_ENTRY2;
+      url += "=";
+      url += "session001";
+      url += "&";
+      url += PRIVATE_ENTRY3;
+      url += "=";
+      url += scd30.CO2;
+      url += "&";
+      url += PRIVATE_ENTRY4;
+      url += "=";
+      url += scd30.temperature;
+      url += "&";
+      url += PRIVATE_ENTRY5;
+      url += "=";
+      url += scd30.relative_humidity;
+
+      client.print(String("Get ") + url + " HTTP/1.1\r\n" +
+                   "Host: " + api_host + "\r\n" +
+                   "Connection: close\r\n\r\n");
+      unsigned long timeout = millis();
+      while(client.available() == 0) {
+          if(millis() - timeout > MS_TIMEOUT) {
+              client.stop();
+              return;
+          }
+      }
+
+
+      while(client.available()) {
+          String line = client.readStringUntil('\r');
+      }
+
+    } // end post form data
 
   delay(100);
 }
