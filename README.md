@@ -32,6 +32,15 @@ the google form identifier, and then the cumbersome form element IDs.
 #define PRIVATE_ENTRY5 "entry.5678901"
 ```
 
+On this branch, I'm using [eduroam](https://eduroam.org) at
+[UW-Madison](https://wisc.edu) for wifi. For this, `private.h`
+includes the following:
+
+```
+#define EAP_USERNAME "eduroam_login"
+#define EAP_PASSWORD "eduroam_password"
+```
+
 ---
 
 ### License
