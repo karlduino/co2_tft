@@ -8,6 +8,7 @@
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include "esp_wpa2.h" //wpa2 library for connections to Enterprise networks
 
 // google docs certificate
 const char* root_ca = \
@@ -35,11 +36,11 @@ const char* root_ca = \
 
 WiFiClientSecure client;
 
-
-// private info
 #include "private.h"
-const char* ssid = PRIVATE_SSID;
-const char* password = PRIVATE_PASSWORD;
+#define EAP_IDENTITY "anonymous@wisc.edu"
+// #define EAP_USERNAME "username" // defined in private.h
+// #define EAP_PASSWORD "password" //your Eduroam password
+const char* ssid = "eduroam"; // Eduroam SSID
 
 const char* api_host = "docs.google.com";
 
@@ -61,7 +62,12 @@ void setup(void) {
     delay(250);
   }
 
-  WiFi.begin(ssid, password);
+  WiFi.disconnect(true);  //disconnect form wifi to set new wifi connection
+  WiFi.mode(WIFI_STA); //init wifi mode
+
+  // Example1 (most common): a cert-file-free eduroam with PEAP (or TTLS)
+  WiFi.begin(ssid, WPA2_AUTH_PEAP, EAP_IDENTITY, EAP_USERNAME, EAP_PASSWORD);
+
   int wifi_tries = 0;
   while(WiFi.status() != WL_CONNECTED) {
     delay(500);
